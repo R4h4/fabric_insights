@@ -24,15 +24,21 @@
             discoveryService = container "Data Catalog" "API application/data catalog that manages metadata of the data stored, as well as it's lineage, freshness, etc. Based on DataHub and then to be extended by data graph-based data ontology" "Python, Java, DataHub" 
             dataApiService = container "Data API Service" "Security and Translation layer between consumer and data warehouse. MVP can use cube, should get replaced by inhouse development in v2" "cube.js, Python"
 
+            // Management components
+            gitOps = container "GitOps" "Stores the state of configurations in git. User can managed all pipelines through GitOps by cloning the repo and merging it in their CI/CD flows" "Git SMC, Python, FastAPI"
+            tenentManagement = container "Tenent Management" "API application that manages the tenents and their access to the platform" "Python, FastAPI, Postgres"
+
             // Primary UI/webapp flow
             webapp -> apiGateway "Forwards requests to" "JSON, HTTPs"
+            tenentManagement -> apiGateway "Authorized user requests and routes to correct tenent services" "JSON, HTTPs"
             
             // Direct user interactions
             dataUser -> webapp "Create ingestion- and transformation pipelines using"
             analyticsUser -> webapp "Discovers available data in data catalog, creates new data models and pipelines and creates data APIs in"
             businessUser -> webapp "Discovers available data in data catalog of"
             businessUser -> biSystem "Creats, views and updates dashboards (self-service) in"
-            dataUser -> apiGateway "Uses CI/CD and GitOps to manage data pipelines"
+            dataUser -> gitOps "Uses CI/CD and GitOps to manage data pipelines" "Git"
+            gitOps -> apiGateway "Updates trigger actions that are communicated to"
 
             // Things exposed via API
             apiGateway -> observabilityService "Query aggregated logs, status of data pipelines etc. from" "JSON, HTTPs"
@@ -42,6 +48,20 @@
             apiGateway -> ingestionService "CRUD for ingestion jobs" "JSON, HTTPs"
             apiGateway -> dataApiService "CRUD for data security and data APIs" "JSON, HTTPs"
             
+            // gitOps flos
+            ingestionService -> gitOps "Stores configuration of ingestion jobs in" "JSON, Kafka" {
+                tags "async"
+            }
+            transformationService -> gitOps "Stores configuration of transformation jobs in" "JSON, Kafka" {
+                tags "async"
+            }
+            orchestrationService -> gitOps "Stores configuration of orchestration jobs in" "JSON, Kafka" {
+                tags "async"
+            }
+            dataApiService -> gitOps "Stores configuration of data APIs in" "JSON, Kafka" {
+                tags "async"
+            }
+
             // Ingestion
             dataSource -> ingestionService "Has data extracted by"
             ingestionService -> dataStorage "Write data into"
