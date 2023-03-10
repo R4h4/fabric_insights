@@ -22,10 +22,19 @@ workspace {
             dataStorage = container "Storage Layer" "Stores ingested/virtualzed tables" "Parquet, Iceberg" {
                 tags storage
             } 
+            ontologyService = container "Ontology Service" "Manages metadata in a knowledge graph that can be manually edited and can be queried in near natural language" "Python, FastAPI, Neo4j, Cypher" {
+                ontologyStorage = component "Ontology Storage" "Graph database that holds information about ontology" "Neo4j" {
+                    tags storage
+                }
+                dataQueryService = component "Data Query translation Service" "Takes NLP/Graph queries, matches them with the metadata in the ontology and translates it into SQL that can be executed against the base data." "Python, FastAPI"
+                
+                dataQueryService -> ontologyStorage "Queries metadata from" "Cypher, HTTPs"
+                dataQueryService -> dataStorage "Queries data from" "SQL, HTTPs"
+            }
             ingestionService = container "Ingestion Service" "APIService that parses incoming data into data + metadata" "Python, FastAPI" {
                 dataSourceAdapter = component "Data Source Adapter" "Unified interface for different adapters that connect to and load data from data sources like Excel or a MsQL Database and converts them into Parquet" "Python"
                 dataStorageAdapter = component "Data Storage Adapter" "Unified interface for different adapters that store data in i.e. the internal storage layer or (later on) in cloud accounts of customers" "Python"
-                ingestionLocalStorage component "Storage" "Holds ingestion job definitions and metadata of executions" "PostgresQL" {
+                ingestionLocalStorage = component "Storage" "Holds ingestion job definitions and metadata of executions" "PostgresQL" {
                     tags storage
                 } 
                 ingestionManager = component "Deals with incoming requests and coordinates the execution of ingestion jobs" "Python"
@@ -38,11 +47,6 @@ workspace {
                 dataSourceAdapter -> dataStorageAdapter "Sends standaterized format data for storage to"
 
                 ingestionManager -> ontologyService  "Sends metadata about data location and schema to" "JSON, HTTPs"
-            }
-            ontologyService = container "Ontology Service" "Manages metadata in a knowledge graph that can be manually edited and can be queried in near natural language" "Python, FastAPI, Neo4j, Cypher" {
-                ontologyStorage = component "Ontology Storage" "Holds information about" "Neo4j" {
-                    tags storage
-                } 
             }
             apiGateway = container "API Gateway Layer" "Unified API layer for user and frontend to interact with the individual services"
 
@@ -72,6 +76,18 @@ workspace {
         }
 
         container softwareSystem {
+            include *
+            autolayout lr
+        }
+
+
+        component ontologyService {
+            include *
+            autolayout lr
+        }
+
+
+        component ingestionService {
             include *
             autolayout lr
         }
