@@ -9,7 +9,8 @@
 
 workspace {
     model {
-        analyticsUser = person "Head of Analytics" "Manages financial health, knows basic SQL, uses data to make management decisions"
+        analyticsUser = person "Business User" "Manages financial health, knows basic SQL, uses data to make management decisions"
+        dataUser = person "Data Manager" "Designs data architecture, creates scheduled reports, serves business's adhoc requests"
 
         dataSource = softwareSystem "Data Source" "External system like databases, cloud apps, enterprise apps, and streaming systems"
         
@@ -37,9 +38,10 @@ workspace {
                 ingestionLocalStorage = component "Storage" "Holds ingestion job definitions and metadata of executions" "PostgresQL" {
                     tags storage
                 } 
-                ingestionManager = component "Deals with incoming requests and coordinates the execution of ingestion jobs" "Python"
+                ingestionManager = component "Config API" "Deals with incoming requests and coordinates the execution of ingestion jobs" "Python"
 
                 # Connection to outside data source and destinations
+                webapp -> ingestionManager "Makes requests against" "JSON, HTTPs"
                 dataSource -> dataSourceAdapter "Has data extracted by"
                 dataStorageAdapter -> dataStorage "Stores parquet files in"
                 ingestionManager -> ingestionLocalStorage "Stores and retrieves job definitions and metadata in/from"
@@ -55,7 +57,8 @@ workspace {
             tenantService -> apiGateway "Secures endpoints and routes requests to the right service endpoints"
 
             # Flow of data through the system
-            analyticsUser -> webapp "Uploads Excel files, create ingestion connections, edits ontology and discoveres data through" "JSON, HTTPs"
+            analyticsUser -> webapp "Uploads Excel files, create ingestion connections, edits ontology and discoveres data through"
+            dataUser -> webapp "Creates ingest connection to production and other analytics systems. Maps technical table names to business objects" 
             apiGateway -> ingestionService "Sends files to, and performs CRUD on ingestion jobs with" "JSON, HTTPs"
             ingestionService -> dataStorage "Stores raw (Excel/CSV) files and processed parquet files in" "HTTPs"
             # Turn async later
